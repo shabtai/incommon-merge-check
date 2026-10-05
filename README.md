@@ -15,6 +15,8 @@ The INCOMMON study on MSK-MET 2021 joins 32 OncoTree codes into 9 tumour groups 
 
 For the first three, a control that removes the same number of random samples does not reproduce the change. So they come from which samples were merged, not from sample size. The other merges (CRC, BLCA, LUAD, UCEC) change results little.
 
+In every case the original code was still in the raw MSK-MET 2021 files. No step failed and no warning appeared. After the merge, the distinction was gone from every later step.
+
 Two more points:
 
 - 220 of 227 published models in merged groups reproduce exactly from the authors' released files.
@@ -68,7 +70,13 @@ The same script also joins mutations: all KRAS G12 variants become one group `p.
 
 In MSK-MET 2021, the published KRAS model for pancreatic cancer compares mostly PANET patients with PAAD patients. Its high-dosage hazard ratio falls from 3.19 to 1.73 when only PAAD samples are used.
 
-**Reproduction.** I took the published model object and its own input data from `survival_analysis_msk_met.rds`. A refit gives the same coefficients, covariance, log-likelihood, N and deaths (tolerance 1e-10). I then joined each sample to its original OncoTree code in the MSK-MET 2021 sample file.
+PAAD (adenocarcinoma) and PANET (neuroendocrine tumour) are different diseases, with different driver genes and different survival. One line of the preparation script (`1.1.prepare_msk_met.R`, line 91) joins them:
+
+```r
+tumor_type %in% c('PAAD', 'PANET') ~ 'PAAD'
+```
+
+**Reproduction.** I took the published model object and its own input data from `survival_analysis_msk_met.rds`. A refit gives the same coefficients, covariance, log-likelihood, N and deaths (tolerance 1e-10). I then joined each sample to its original OncoTree code in the MSK-MET 2021 sample file, and refit the same model (same covariates, Efron ties) on PAAD samples only. Nothing else was changed.
 
 **Who is in each class** (samples in the fit):
 
@@ -92,7 +100,7 @@ About 90% of pancreatic adenocarcinomas carry a KRAS mutation. Most pancreatic n
 | High vs balanced | 1.39, p 4.9e-5 | 1.31, p 0.0013 |
 | FGA (covariate) | 0.91 (0.64–1.29), p 0.59 | 2.46 (1.57–3.85), p 8e-5 |
 
-With PAAD only, low and balanced dosage are no longer significant. High dosage stays significant, with about half the effect. The dosage trend (high vs balanced) remains. The FGA covariate changes most. A likely reason: PANET has fewer copy-number changes than PAAD, so in the merged data FGA partly tracked the tumour type.
+With PAAD only, low and balanced dosage are no longer significant. High dosage stays significant, with about half the effect. On the log scale the HR against WT falls by 53% (high), 66% (balanced) and 76% (low). The dosage trend (high vs balanced) remains. The FGA covariate changes most. A likely reason: PANET has fewer copy-number changes than PAAD, so in the merged data FGA partly tracked the tumour type.
 
 **Is it only the smaller sample?** No. I removed 144 random samples (the same number as PANET) from the merged data, 300 times. The high-dosage HR stayed at 3.20 (90% range 3.02–3.43), and every term stayed significant in all 300 runs. The drop to 1.73 comes from who was removed, not from how many.
 
@@ -208,5 +216,5 @@ The scripts read their inputs from `/private/tmp`. `incommon-survival.rds` is th
 
 **Sources**
 
-1. Calonaci N. et al. INCOMMON. Nature Genetics 2026. Preprint: [medRxiv 2024.05.13.24307238](https://www.medrxiv.org/content/10.1101/2024.05.13.24307238).
+1. Calonaci N. et al. Gene mutant dosage is associated with prognosis and metastatic tropism in 60,000 clinical cancer samples. Nature Genetics 2026. Preprint: [medRxiv 2024.05.13.24307238](https://www.medrxiv.org/content/10.1101/2024.05.13.24307238).
 2. Nguyen B. et al. Genomic characterization of metastatic patterns from prospective clinical sequencing of 25,000 patients. Cell 2022. Data: [cBioPortal msk_met_2021](https://www.cbioportal.org/study/summary?id=msk_met_2021).
